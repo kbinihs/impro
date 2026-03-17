@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>특정일조정 관리</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --accent: #0F6E56; --accent-bg: #E1F5EE; --accent-dark: #085041;
+  --warn: #BA7517; --warn-bg: #FAEEDA; --warn-dark: #633806;
+  --danger: #A32D2D; --danger-bg: #FCEBEB; --danger-dark: #791F1F;
+  --text-p: #1a1a1a; --text-s: #666; --text-h: #aaa;
+  --bg-p: #ffffff; --bg-s: #f5f4f0; --bg-t: #eeece7;
+  --border: rgba(0,0,0,0.1); --r: 8px; --rl: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-p: #e4e4e2; --text-s: #999997; --text-h: #555;
+    --bg-p: #1c1c1a; --bg-s: #242422; --bg-t: #2a2a28;
+    --border: rgba(255,255,255,0.1);
+    --accent-bg: #04342C; --accent-dark: #9FE1CB;
+    --warn-bg: #412402; --warn-dark: #FAC775;
+    --danger-bg: #501313; --danger-dark: #F7C1C1;
+  }
+}
+body { font-family: 'Apple SD Gothic Neo','Noto Sans KR',-apple-system,sans-serif; background: var(--bg-t); color: var(--text-p); min-height: 100vh; padding: 1.5rem 1rem 4rem; }
+.container { max-width: 580px; margin: 0 auto; }
+
+/* Header */
+.top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.app-name { font-size: 12px; font-weight: 700; letter-spacing: .08em; color: var(--text-h); text-transform: uppercase; }
+.sync-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-h); cursor: pointer; padding: 4px 8px; border-radius: 100px; border: 1px solid var(--border); background: var(--bg-p); transition: background .12s; }
+.sync-status:hover { background: var(--bg-s); }
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-h); flex-shrink: 0; }
+.sync-dot.ok { background: var(--accent); }
+.sync-dot.err { background: var(--danger); }
+.sync-dot.loading { background: var(--warn); animation: pulse .8s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* Setup screen */
+.setup-screen { background: var(--bg-p); border-radius: var(--rl); border: 1px solid var(--border); padding: 1.5rem 1.25rem; margin-bottom: .875rem; }
+.setup-title { font-size: 15px; font-weight: 600; margin-bottom: .5rem; }
+.setup-desc { font-size: 13px; color: var(--text-s); line-height: 1.7; margin-bottom: 1rem; }
+.setup-steps { font-size: 12px; color: var(--text-s); line-height: 2; margin-bottom: 1rem; padding-left: 1rem; }
+.setup-steps li { margin-bottom: 2px; }
+.setup-steps code { background: var(--bg-s); padding: 1px 5px; border-radius: 4px; font-family: 'Menlo','Consolas',monospace; font-size: 11px; color: var(--text-p); }
+
+/* Balance */
+.balance-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin-bottom: 1.25rem; }
+.b-card { background: var(--bg-s); border-radius: var(--r); padding: 12px 14px; }
+.b-card.rem { background: var(--accent-bg); }
+.b-label { font-size: 11px; color: var(--text-s); margin-bottom: 1px; }
+.b-sublabel { font-size: 10px; color: var(--text-h); margin-bottom: 2px; }
+.b-card.rem .b-label { color: var(--accent-dark); opacity:.75; }
+.b-card.rem .b-sublabel { color: var(--accent-dark); opacity:.5; }
+.b-val { font-size: 18px; font-weight: 600; color: var(--text-p); line-height: 1.2; }
+.b-card.rem .b-val { color: var(--accent-dark); }
+.b-val.zero { color: var(--text-h); }
+.b-val.danger { color: var(--danger) !important; }
+
+/* Section */
+.section { background: var(--bg-p); border-radius: var(--rl); border: 1px solid var(--border); padding: 1.125rem 1.25rem; margin-bottom: .875rem; }
+.sec-title { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-h); margin-bottom: .875rem; }
+
+/* Form */
+.form-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.form-group { flex: 1; }
+.form-group.wide { flex: 1.4; }
+.form-label { display: block; font-size: 11px; color: var(--text-s); margin-bottom: 3px; }
+input[type=date], input[type=text], input[type=url], select { width: 100%; height: 36px; border: 1px solid var(--border); border-radius: var(--r); background: var(--bg-s); color: var(--text-p); padding: 0 10px; font-size: 13px; font-family: inherit; outline: none; transition: border-color .15s; -webkit-appearance: none; appearance: none; }
+input[type=date]:focus, input[type=text]:focus, input[type=url]:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(15,110,86,.15); }
+select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+.btn { width: 100%; height: 38px; border-radius: var(--r); border: none; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: opacity .15s,transform .1s; letter-spacing: .02em; }
+.btn:hover { opacity: .88; }
+.btn:active { transform: scale(.98); }
+.btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+.btn-ot { background: var(--accent); color: #fff; }
+.btn-use { background: var(--warn); color: #fff; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-p); }
+
+/* Hint */
+.hint-box { border-radius: var(--r); padding: 9px 12px; font-size: 12px; margin-bottom: .875rem; line-height: 1.5; }
+
+/* Filter tabs */
+.filter-tabs { display: flex; gap: 6px; margin-bottom: .875rem; }
+.tab { font-size: 12px; padding: 4px 12px; border-radius: 100px; border: 1px solid var(--border); background: none; color: var(--text-s); cursor: pointer; font-family: inherit; transition: all .12s; }
+.tab.active { background: var(--text-p); color: var(--bg-p); border-color: var(--text-p); }
+
+/* Log */
+.log-empty { text-align: center; color: var(--text-h); font-size: 13px; padding: 1.5rem 0; }
+.log-item { display: grid; grid-template-columns: 7px 52px auto 1fr auto auto auto; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.log-item:last-child { border-bottom: none; }
+.log-item.expired { opacity: .42; }
+.dot { width: 7px; height: 7px; border-radius: 50%; }
+.dot.overtime { background: var(--accent); }
+.dot.usage { background: var(--warn); }
+.dot.exp { background: var(--text-h); }
+.log-date { font-size: 12px; color: var(--text-s); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 100px; white-space: nowrap; }
+.badge.overtime { background: var(--accent-bg); color: var(--accent-dark); }
+.badge.usage { background: var(--warn-bg); color: var(--warn-dark); }
+.badge.exp { background: var(--bg-s); color: var(--text-h); }
+.log-note { font-size: 12px; color: var(--text-s); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log-expiry { font-size: 10px; color: var(--text-h); white-space: nowrap; }
+.log-expiry.soon { color: var(--danger); }
+.log-dur { font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.log-dur.overtime { color: var(--accent); }
+.log-dur.usage { color: var(--warn); }
+.log-dur.exp { color: var(--text-h); }
+.del-btn { background: none; border: none; cursor: pointer; color: var(--text-h); font-size: 16px; padding: 0; line-height: 1; transition: color .12s; width: 20px; text-align: center; }
+.del-btn:hover { color: var(--danger); }
+
+/* Toast */
+.toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(8px); background: var(--text-p); color: var(--bg-p); padding: 9px 18px; border-radius: 100px; font-size: 13px; opacity: 0; transition: opacity .18s,transform .18s; pointer-events: none; white-space: nowrap; z-index: 999; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Settings modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+.modal { background: var(--bg-p); border-radius: var(--rl); border: 1px solid var(--border); padding: 1.5rem; width: 100%; max-width: 480px; }
+.modal-title { font-size: 15px; font-weight: 600; margin-bottom: 1rem; }
+.modal-footer { display: flex; gap: 8px; margin-top: 1rem; }
+.hidden { display: none !important; }
+
+/* User tabs */
+.user-tabs { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 6px; margin-bottom: 1.25rem; }
+.user-tab { height: 36px; border-radius: var(--r); border: 1px solid var(--border); background: var(--bg-p); color: var(--text-s); font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; transition: all .12s; }
+.user-tab:hover { background: var(--bg-s); }
+.user-tab.active { background: var(--text-p); color: var(--bg-p); border-color: var(--text-p); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="top-bar">
+    <div class="app-name">특정일조정 관리</div>
+    <div class="sync-status" onclick="openSettings()" id="syncStatus">
+      <div class="sync-dot" id="syncDot"></div>
+      <span id="syncLabel">설정 필요</span>
+    </div>
+  </div>
+
+  <!-- Setup prompt (shown when no script URL) -->
+  <div class="user-tabs">
+    <button class="user-tab active" onclick="setUser('강서윤',this)">강서윤</button>
+    <button class="user-tab" onclick="setUser('김빈',this)">김빈</button>
+    <button class="user-tab" onclick="setUser('목수아',this)">목수아</button>
+    <button class="user-tab" onclick="setUser('허유리',this)">허유리</button>
+  </div>
+
+  <!-- Setup prompt (shown when no script URL) -->
+  <div class="setup-screen hidden" id="setupScreen">
+    <div class="setup-title">구글 시트 연동 설정이 필요합니다</div>
+    <div class="setup-desc">오른쪽 상단 버튼을 눌러 Apps Script URL을 입력하면 팀원 모두 같은 구글 시트를 공유할 수 있습니다.</div>
+    <button class="btn btn-outline" style="max-width:200px;" onclick="openSettings()">⚙ 설정 열기</button>
+  </div>
+
+  <div id="mainContent">
+    <div class="balance-grid">
+      <div class="b-card">
+        <div class="b-label">최근 30일 누적</div>
+        <div class="b-val" id="bAcc">—</div>
+      </div>
+      <div class="b-card">
+        <div class="b-label">사용</div>
+        <div class="b-val" id="bUsed">—</div>
+      </div>
+      <div class="b-card rem">
+        <div class="b-label">현재 잔여</div>
+        <div class="b-sublabel">오늘 기준</div>
+        <div class="b-val" id="bRem">—</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sec-title">특정일조정 입력</div>
+      <div class="form-row">
+        <div class="form-group wide">
+          <label class="form-label">근무 날짜</label>
+          <input type="date" id="otDate">
+        </div>
+        <div class="form-group">
+          <label class="form-label">초과 시간</label>
+          <select id="otDur">
+            <option value="30">30분</option>
+            <option value="60">1시간</option>
+            <option value="90">1시간 30분</option>
+            <option value="120">2시간</option>
+            <option value="150">2시간 30분</option>
+            <option value="180">3시간</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">비고 (선택)</label>
+          <input type="text" id="otNote" placeholder="예: 긴급 보고서 작업">
+        </div>
+      </div>
+      <button class="btn btn-ot" id="btnOt" onclick="addEntry('overtime')">+ 특정일조정 추가</button>
+    </div>
+
+    <div class="section">
+      <div class="sec-title">사용 입력</div>
+      <div id="availHint" style="display:none;"></div>
+      <div class="form-row">
+        <div class="form-group wide">
+          <label class="form-label">사용 날짜</label>
+          <input type="date" id="useDate" onchange="updateHint()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">사용 시간</label>
+          <select id="useDur" onchange="updateHint()">
+            <option value="30">30분</option>
+            <option value="60">1시간</option>
+            <option value="90">1시간 30분</option>
+            <option value="120">2시간</option>
+            <option value="150">2시간 30분</option>
+            <option value="180">3시간</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">비고 (선택)</label>
+          <input type="text" id="useNote" placeholder="예: 조기 퇴근">
+        </div>
+      </div>
+      <button class="btn btn-use" id="btnUse" onclick="addEntry('usage')">+ 사용 추가</button>
+    </div>
+
+    <div class="section">
+      <div class="sec-title">전체 내역</div>
+      <div class="filter-tabs">
+        <button class="tab active" onclick="setFilter('all',this)">전체</button>
+        <button class="tab" onclick="setFilter('overtime',this)">특정일조정</button>
+        <button class="tab" onclick="setFilter('usage',this)">사용</button>
+        <button class="tab" onclick="setFilter('active',this)">유효</button>
+      </div>
+      <div id="logList"><div class="log-empty">불러오는 중...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay hidden" id="settingsModal">
+  <div class="modal">
+    <div class="modal-title">⚙ 구글 시트 연동 설정</div>
+    <div style="font-size:12px;color:var(--text-s);line-height:1.8;margin-bottom:1rem;">
+      <b style="font-size:13px;color:var(--text-p);display:block;margin-bottom:.5rem;">Apps Script 배포 URL 입력</b>
+      아직 설정하지 않으셨다면 함께 제공된 <code style="background:var(--bg-s);padding:1px 5px;border-radius:4px;font-size:11px;">Code.gs</code> 파일의 설치 안내를 먼저 따라주세요.
+    </div>
+    <div class="form-group" style="margin-bottom:8px;">
+      <label class="form-label">Apps Script 웹 앱 URL</label>
+      <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ot" style="flex:1;" onclick="saveSettings()">저장 및 연결</button>
+      <button class="btn btn-outline" style="flex:0 0 80px;" onclick="closeSettings()">취소</button>
+    </div>
+    <div style="margin-top:.75rem;font-size:11px;color:var(--text-h);">저장하면 구글 시트에서 데이터를 불러옵니다.</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CACHE_KEY = 'wvk_ot_entries_v3';
+const URL_KEY   = 'wvk_ot_script_url';
+const USERS = ['강서윤', '김빈', '목수아', '허유리'];
+
+let entries = JSON.parse(localStorage.getItem(CACHE_KEY) || '[]');
+let scriptUrl = localStorage.getItem(URL_KEY) || '';
+let filter = 'all';
+let syncing = false;
+let currentUser = '강서윤';
+
+const today = new Date().toISOString().slice(0,10);
+document.getElementById('otDate').value = today;
+document.getElementById('useDate').value = today;
+
+// ── Date helpers ───────────────────────────────────────
+function addDays(s, n) {
+  const d = new Date(s + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0,10);
+}
+function diffDays(a, b) {
+  return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00')) / 86400000);
+}
+function fmt(m) {
+  if (!m) return '0분';
+  const h = Math.floor(Math.abs(m)/60), min = Math.abs(m)%60, s = m<0?'-':'';
+  if (!h) return s+min+'분';
+  if (!min) return s+h+'시간';
+  return s+h+'시간 '+min+'분';
+}
+
+function balanceAt(refDate, user) {
+  const u = user || currentUser;
+  const cutoff = addDays(refDate, -30);
+  const earned = entries.filter(e => e.user===u && e.type==='overtime' && e.date>=cutoff && e.date<=refDate).reduce((s,e)=>s+e.minutes,0);
+  const used   = entries.filter(e => e.user===u && e.type==='usage'    && e.date<=refDate).reduce((s,e)=>s+e.minutes,0);
+  return { earned, used, rem: earned - used };
+}
+
+// ── Sync status ────────────────────────────────────────
+function setSyncStatus(state, label) {
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLabel');
+  dot.className = 'sync-dot' + (state ? ' ' + state : '');
+  lbl.textContent = label;
+}
+
+// ── Load from Google Sheets ────────────────────────────
+async function loadFromSheet() {
+  if (!scriptUrl) {
+    setSyncStatus('', '설정 필요');
+    document.getElementById('setupScreen').classList.remove('hidden');
+    render(); return;
+  }
+  document.getElementById('setupScreen').classList.add('hidden');
+  setSyncStatus('loading', '불러오는 중...');
+  try {
+    const res = await fetch(scriptUrl);
+    const data = await res.json();
+    if (data.ok) {
+      entries = data.entries.map(e => ({
+        ...e,
+        minutes: Number(e.minutes)
+      }));
+      localStorage.setItem(CACHE_KEY, JSON.stringify(entries));
+      setSyncStatus('ok', '시트 연동됨');
+      render();
+    } else {
+      throw new Error(data.error);
+    }
+  } catch (err) {
+    setSyncStatus('err', '연결 실패');
+    toast('시트 연결 실패. 로컬 캐시를 사용합니다.');
+    render();
+  }
+}
+
+// ── Post to Google Sheets ──────────────────────────────
+async function postToSheet(payload) {
+  if (!scriptUrl) return false;
+  try {
+    const res = await fetch(scriptUrl, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    return data.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ── Render ────────────────────────────────────────────
+function render() {
+  const { earned, used, rem } = balanceAt(today);
+  document.getElementById('bAcc').textContent = fmt(earned);
+  document.getElementById('bUsed').textContent = fmt(used);
+  const remEl = document.getElementById('bRem');
+  remEl.textContent = fmt(rem);
+  remEl.className = 'b-val' + (rem < 0 ? ' danger' : rem === 0 ? ' zero' : '');
+
+  updateHint();
+
+  const sorted = [...entries].sort((a,b) => b.date.localeCompare(a.date));
+  const visible = sorted.filter(e => {
+    if (e.user !== currentUser) return false;
+    if (filter === 'all') return true;
+    if (filter === 'overtime') return e.type === 'overtime';
+    if (filter === 'usage') return e.type === 'usage';
+    if (filter === 'active') return e.type === 'usage' || addDays(e.date, 30) >= today;
+    return true;
+  });
+
+  const el = document.getElementById('logList');
+  if (!visible.length) { el.innerHTML = '<div class="log-empty">내역이 없습니다</div>'; return; }
+
+  el.innerHTML = visible.map(e => {
+    const expired = e.type === 'overtime' && addDays(e.date, 30) < today;
+    const dLeft = e.type === 'overtime' && !expired ? diffDays(today, addDays(e.date, 30)) : null;
+    const expStr = e.type === 'overtime' ? addDays(e.date, 30).slice(5).replace('-','/') : null;
+    const dotC = expired ? 'exp' : e.type;
+    const badgeC = expired ? 'exp' : e.type;
+    const badgeT = expired ? '만료' : (e.type === 'overtime' ? '적립' : '사용');
+    const durC = expired ? 'exp' : e.type;
+    const sign = e.type === 'usage' ? '−' : '+';
+    let exHtml = '<span></span>';
+    if (e.type === 'overtime') {
+      if (expired) exHtml = `<span class="log-expiry">${expStr} 만료</span>`;
+      else if (dLeft <= 7) exHtml = `<span class="log-expiry soon">${dLeft}일 후 만료</span>`;
+      else exHtml = `<span class="log-expiry">${dLeft}일 후 만료</span>`;
+    }
+    return `<div class="log-item${expired?' expired':''}">
+      <div class="dot ${dotC}"></div>
+      <div class="log-date">${e.date.slice(5).replace('-','/')}</div>
+      <div class="badge ${badgeC}">${badgeT}</div>
+      <div class="log-note">${e.note||''}</div>
+      ${exHtml}
+      <div class="log-dur ${durC}">${sign}${fmt(e.minutes)}</div>
+      <button class="del-btn" onclick="delEntry('${e.id}')">×</button>
+    </div>`;
+  }).join('');
+}
+
+function updateHint() {
+  const date = document.getElementById('useDate').value;
+  const req  = parseInt(document.getElementById('useDur').value);
+  const box  = document.getElementById('availHint');
+  if (!date) { box.style.display='none'; return; }
+  const { rem } = balanceAt(date);
+  const cutoff = addDays(date, -30);
+  const range = `${cutoff.slice(5).replace('-','/')} ~ ${date.slice(5).replace('-','/')}`;
+  box.style.display = 'block';
+  if (rem <= 0) {
+    box.style.cssText = 'display:block;background:var(--danger-bg);color:var(--danger-dark);border-radius:var(--r);padding:9px 12px;font-size:12px;margin-bottom:.875rem;line-height:1.5;';
+    box.textContent = `사용 가능한 잔여 시간이 없습니다. (${range})`;
+  } else if (req > rem) {
+    box.style.cssText = 'display:block;background:var(--warn-bg);color:var(--warn-dark);border-radius:var(--r);padding:9px 12px;font-size:12px;margin-bottom:.875rem;line-height:1.5;';
+    box.textContent = `잔여 ${fmt(rem)} — 요청 ${fmt(req)} 초과. (${range})`;
+  } else {
+    box.style.cssText = 'display:block;background:var(--accent-bg);color:var(--accent-dark);border-radius:var(--r);padding:9px 12px;font-size:12px;margin-bottom:.875rem;line-height:1.5;';
+    box.textContent = `사용 가능: ${fmt(rem)} 중 ${fmt(req)} (${range})`;
+  }
+}
+
+// ── Add entry ──────────────────────────────────────────
+async function addEntry(type) {
+  const date = document.getElementById(type==='overtime'?'otDate':'useDate').value;
+  const minutes = parseInt(document.getElementById(type==='overtime'?'otDur':'useDur').value);
+  const note = document.getElementById(type==='overtime'?'otNote':'useNote').value.trim();
+  if (!date) { toast('날짜를 선택해주세요'); return; }
+  if (type === 'usage') {
+    const { rem } = balanceAt(date);
+    if (minutes > rem) { toast(`잔여 시간 부족 (${fmt(Math.max(0,rem))} 사용 가능)`); return; }
+  }
+  const entry = { id: Date.now().toString(36)+Math.random().toString(36).slice(2,5), type, date, minutes, note, user: currentUser };
+
+  // Optimistic update
+  entries.push(entry);
+  localStorage.setItem(CACHE_KEY, JSON.stringify(entries));
+  document.getElementById(type==='overtime'?'otNote':'useNote').value = '';
+  render();
+
+  setSyncStatus('loading', '저장 중...');
+  const ok = await postToSheet({ action: 'add', entry });
+  if (ok) {
+    setSyncStatus('ok', '저장됨');
+    toast(type==='overtime'?'특정일조정 추가 ✓':'사용 추가 ✓');
+  } else {
+    setSyncStatus(scriptUrl ? 'err' : '', scriptUrl ? '시트 저장 실패' : '로컬 저장됨');
+    toast(scriptUrl ? '로컬에만 저장됨 — 시트 확인 필요' : '로컬에 저장됨 ✓');
+  }
+}
+
+// ── Delete entry ───────────────────────────────────────
+async function delEntry(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  entries = entries.filter(e => e.id !== id);
+  localStorage.setItem(CACHE_KEY, JSON.stringify(entries));
+  render();
+  setSyncStatus('loading', '삭제 중...');
+  const ok = await postToSheet({ action: 'delete', id });
+  setSyncStatus(ok ? 'ok' : (scriptUrl ? 'err' : ''), ok ? '시트 연동됨' : (scriptUrl ? '시트 삭제 실패' : '로컬 저장됨'));
+}
+
+function setUser(name, btn) {
+  currentUser = name;
+  document.querySelectorAll('.user-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function setFilter(m, btn) {
+  filter = m;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+// ── Settings modal ─────────────────────────────────────
+function openSettings() {
+  document.getElementById('scriptUrlInput').value = scriptUrl;
+  document.getElementById('settingsModal').classList.remove('hidden');
+}
+function closeSettings() {
+  document.getElementById('settingsModal').classList.add('hidden');
+}
+async function saveSettings() {
+  const url = document.getElementById('scriptUrlInput').value.trim();
+  if (!url) { toast('URL을 입력해주세요'); return; }
+  scriptUrl = url;
+  localStorage.setItem(URL_KEY, url);
+  closeSettings();
+  await loadFromSheet();
+}
+
+// ── Toast ──────────────────────────────────────────────
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2600);
+}
+
+// ── Init ───────────────────────────────────────────────
+loadFromSheet();
+</script>
+</body>
+</html>
