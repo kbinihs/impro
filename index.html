@@ -89,7 +89,8 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 
 /* Log */
 .log-empty { text-align: center; color: var(--text-h); font-size: 13px; padding: 1.5rem 0; }
-.log-item { display: grid; grid-template-columns: 7px 52px auto 1fr auto auto auto; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.log-item { display: grid; grid-template-columns: 7px 48px 44px auto 1fr auto auto; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.log-user { font-size: 11px; font-weight: 600; color: var(--text-s); white-space: nowrap; }
 .log-item:last-child { border-bottom: none; }
 .log-item.expired { opacity: .42; }
 .dot { width: 7px; height: 7px; border-radius: 50%; }
@@ -367,7 +368,6 @@ function render() {
 
   const sorted = [...entries].sort((a,b) => b.date.localeCompare(a.date));
   const visible = sorted.filter(e => {
-    if (e.user !== currentUser) return false;
     if (filter === 'all') return true;
     if (filter === 'overtime') return e.type === 'overtime';
     if (filter === 'usage') return e.type === 'usage';
@@ -396,9 +396,9 @@ function render() {
     return `<div class="log-item${expired?' expired':''}">
       <div class="dot ${dotC}"></div>
       <div class="log-date">${e.date.slice(5).replace('-','/')}</div>
+      <div class="log-user">${e.user||''}</div>
       <div class="badge ${badgeC}">${badgeT}</div>
       <div class="log-note">${e.note||''}</div>
-      ${exHtml}
       <div class="log-dur ${durC}">${sign}${fmt(e.minutes)}</div>
       <button class="del-btn" onclick="delEntry('${e.id}')">×</button>
     </div>`;
