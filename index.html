@@ -324,8 +324,9 @@ async function loadFromSheet() {
   document.getElementById('setupScreen').classList.add('hidden');
   setSyncStatus('loading', '불러오는 중...');
   try {
-    const res = await fetch(scriptUrl + '?action=get', { redirect: 'follow' });
-    const data = await res.json();
+    const res = await fetch(scriptUrl, { redirect: 'follow' });
+    const text = await res.text();
+    const data = JSON.parse(text);
     if (data.ok) {
       entries = data.entries.map(e => ({ ...e, minutes: Number(e.minutes) }));
       localStorage.setItem(CACHE_KEY, JSON.stringify(entries));
@@ -335,7 +336,8 @@ async function loadFromSheet() {
       throw new Error(data.error);
     }
   } catch (err) {
-    setSyncStatus('err', '연결 실패');
+    console.error('Sheet load error:', err);
+    setSyncStatus('err', '연결 실패: ' + err.message);
     toast('시트 연결 실패. 로컬 캐시를 사용합니다.');
     render();
   }
@@ -349,7 +351,8 @@ async function postToSheet(payload) {
   try {
     const encoded = encodeURIComponent(JSON.stringify(payload));
     const res = await fetch(scriptUrl + '?payload=' + encoded, { redirect: 'follow' });
-    const data = await res.json();
+    const text = await res.text();
+    const data = JSON.parse(text);
     return data.ok;
   } catch {
     return false;
