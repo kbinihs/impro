@@ -270,7 +270,7 @@ const URL_KEY   = 'wvk_ot_script_url';
 const USERS = ['강서윤', '김빈', '목수아', '허유리'];
 
 let entries = JSON.parse(localStorage.getItem(CACHE_KEY) || '[]');
-let scriptUrl = localStorage.getItem(URL_KEY) || '';
+let scriptUrl = localStorage.getItem(URL_KEY) || 'https://script.google.com/macros/s/AKfycbwPu6HziZ84Y2c4q-jmZq1lsHCKrYYtjVDPMWOUiEDn4krkqHrTPcpKA4mjad4XwNA/exec';
 let filter = 'all';
 let syncing = false;
 let currentUser = '강서윤';
@@ -322,13 +322,10 @@ async function loadFromSheet() {
   document.getElementById('setupScreen').classList.add('hidden');
   setSyncStatus('loading', '불러오는 중...');
   try {
-    const res = await fetch(scriptUrl);
+    const res = await fetch(scriptUrl + '?action=get', { redirect: 'follow' });
     const data = await res.json();
     if (data.ok) {
-      entries = data.entries.map(e => ({
-        ...e,
-        minutes: Number(e.minutes)
-      }));
+      entries = data.entries.map(e => ({ ...e, minutes: Number(e.minutes) }));
       localStorage.setItem(CACHE_KEY, JSON.stringify(entries));
       setSyncStatus('ok', '시트 연동됨');
       render();
@@ -343,13 +340,13 @@ async function loadFromSheet() {
 }
 
 // ── Post to Google Sheets ──────────────────────────────
+// Apps Script는 CORS preflight(OPTIONS)를 처리 못함
+// → payload를 GET 쿼리로 인코딩해서 전송
 async function postToSheet(payload) {
   if (!scriptUrl) return false;
   try {
-    const res = await fetch(scriptUrl, {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
+    const encoded = encodeURIComponent(JSON.stringify(payload));
+    const res = await fetch(scriptUrl + '?payload=' + encoded, { redirect: 'follow' });
     const data = await res.json();
     return data.ok;
   } catch {
