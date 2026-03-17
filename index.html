@@ -271,7 +271,8 @@ const URL_KEY   = 'wvk_ot_script_url';
 const USERS = ['강서윤', '김빈', '목수아', '허유리'];
 
 let entries = JSON.parse(localStorage.getItem(CACHE_KEY) || '[]');
-let scriptUrl = localStorage.getItem(URL_KEY) || 'https://script.google.com/macros/s/AKfycbwPu6HziZ84Y2c4q-jmZq1lsHCKrYYtjVDPMWOUiEDn4krkqHrTPcpKA4mjad4XwNA/exec';
+const FIXED_URL = 'https://script.google.com/macros/s/AKfycbwPu6HziZ84Y2c4q-jmZq1lsHCKrYYtjVDPMWOUiEDn4krkqHrTPcpKA4mjad4XwNA/exec';
+let scriptUrl = FIXED_URL;
 let filter = 'all';
 let syncing = false;
 let currentUser = '강서윤';
